@@ -16,8 +16,6 @@ canvas {
   image-rendering: pixelated;
   border: 4px solid #4caf50;
 }
-
-/* Dialog */
 #dialog {
   position: absolute;
   bottom: 80px;
@@ -29,8 +27,6 @@ canvas {
   display: none;
   border: 3px solid #4caf50;
 }
-
-/* Pilihan */
 #choices {
   position: absolute;
   bottom: 20px;
@@ -43,25 +39,27 @@ canvas {
   font-family: monospace;
   cursor: pointer;
 }
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: white;
+  font-family: monospace;
+}
 </style>
 </head>
 <body>
-
 <canvas id="game" width="640" height="480"></canvas>
-
-<!-- Dialog NPC -->
+<div id="hud"></div>
 <div id="dialog">
   <p id="dialogText"></p>
   <small>Tekan E untuk menutup</small>
 </div>
-
-<!-- Pilihan 3 jawaban -->
 <div id="choices">
   <button id="choice1"></button>
   <button id="choice2"></button>
   <button id="choice3"></button>
 </div>
-
 <script>
 /* ===== SETUP ===== */
 const canvas = document.getElementById("game");
@@ -71,56 +69,69 @@ const cols = 20;
 const rows = 15;
 
 /* ===== MAP ===== */
-const map = Array.from({ length: rows }, () =>
-  Array.from({ length: cols }, () => 0)
-);
+// 0=rumput,1=kelas,2=kantin,3=lapangan
+const map = [
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,1,1,1,0,0,0,2,2,2,0,0,0,3,3,3,0,0,0,0],
+[0,1,1,1,0,0,0,2,2,2,0,0,0,3,3,3,0,0,0,0],
+[0,1,1,1,0,0,0,0,0,0,0,0,0,3,3,3,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+];
 
-/* ===== PLAYER ===== */
-const player = { x: 5, y: 5, color: "#ffeb3b" };
+/* ===== PLAYER SPRITE ===== */
+const player = { x:5, y:5, color:"#ffeb3b", frame:0 };
 
-/* ===== NPC ===== */
+/* ===== NPC SPRITE ===== */
 const npcs = [
-  { x: 8, y: 5, color: "#2196f3", text: "Guru" },
-  { x: 12, y: 7, color: "#e91e63", text: "Siswi" },
-  { x: 6, y: 10, color: "#9c27b0", text: "Siswa" }
+{x:8, y:5, color:"#2196f3", text:"Guru", frame:0},
+{x:12, y:7, color:"#e91e63", text:"Siswi", frame:0},
+{x:6, y:10, color:"#9c27b0", text:"Siswa", frame:0}
 ];
-
-/* ===== EVENT / PILIHAN ===== */
-const events = [
-  { q: "Sekolah ingin mengurangi sampah plastik. Apa yang dilakukan?",
-    a1: "Larangan plastik total", e1: [15,-10,-5],
-    a2: "Kurangi sebagian", e2: [8,-5,0],
-    a3: "Tidak peduli", e3: [-15,0,-5]
-  },
-  { q: "Tagihan listrik meningkat. Apa solusi?",
-    a1: "Ganti semua lampu ke LED", e1: [10,-15,0],
-    a2: "Matikan lampu saat tidak dipakai", e2: [5,0,0],
-    a3: "Biarkan saja", e3: [-10,0,-5]
-  },
-  { q: "Kantin mengeluh soal sampah plastik. Pilihanmu?",
-    a1: "Kantin bebas plastik", e1: [10,-5,10],
-    a2: "Gunakan plastik ramah lingkungan", e2: [5,-2,5],
-    a3: "Tidak ada perubahan", e3: [-5,0,-5]
-  }
-];
-
-let step = 0;
-let env = 50, money = 50, happy = 50;
 
 let activeDialog = null;
+let step=0;
+let env=50, money=50, happy=50;
+
+/* ===== EVENTS 10 pertanyaan ===== */
+const events = [
+{q:"Sekolah ingin mengurangi sampah plastik. Apa yang dilakukan?", a1:"Larangan plastik total", e1:[15,-10,-5], a2:"Kurangi sebagian", e2:[8,-5,0], a3:"Tidak peduli", e3:[-15,0,-5]},
+{q:"Tagihan listrik meningkat. Apa solusi?", a1:"Ganti semua lampu ke LED", e1:[10,-15,0], a2:"Matikan lampu saat tidak dipakai", e2:[5,0,0], a3:"Biarkan saja", e3:[-10,0,-5]},
+{q:"Kantin mengeluh soal sampah plastik. Pilihanmu?", a1:"Kantin bebas plastik", e1:[10,-5,10], a2:"Gunakan plastik ramah lingkungan", e2:[5,-2,5], a3:"Tidak ada perubahan", e3:[-5,0,-5]},
+{q:"Guru meminta tambahan dana kegiatan, setuju?", a1:"Setuju", e1:[0,-10,10], a2:"Setengah", e2:[0,-5,5], a3:"Tolak", e3:[0,0,-5]},
+{q:"Peraturan baru: seragam ramah lingkungan, apa langkahmu?", a1:"Terapkan penuh", e1:[10,-10,5], a2:"Sebagian", e2:[5,-5,2], a3:"Tidak diterapkan", e3:[-5,0,-2]},
+{q:"Lapangan sekolah kotor, apa tindakanmu?", a1:"Kerja bakti seluruh siswa", e1:[10,0,5], a2:"Petugas kebersihan tambahan", e2:[5,-5,2], a3:"Abaikan", e3:[-10,0,-5]},
+{q:"Dana beasiswa terbatas, bagaimana strategi?", a1:"Kurangi biaya lain", e1:[0,-10,10], a2:"Kurangi sebagian siswa", e2:[0,-5,5], a3:"Tidak ada beasiswa", e3:[0,0,-10]},
+{q:"Kantin ingin menjual makanan sehat, setuju?", a1:"Ya", e1:[10,-5,10], a2:"Sebagian", e2:[5,0,5], a3:"Tidak", e3:[-5,0,-5]},
+{q:"Siswa meminta WiFi gratis, beri izin?", a1:"Ya", e1:[5,-5,10], a2:"Sebagian waktu", e2:[2,-2,5], a3:"Tidak", e3:[-5,0,-5]},
+{q:"Sekolah ingin membuat taman baru, setuju?", a1:"Ya", e1:[10,-15,10], a2:"Sebagian", e2:[5,-5,5], a3:"Tidak", e3:[-5,0,-5]}
+];
 
 /* ===== INPUT ===== */
 const keys = {};
-window.addEventListener("keydown", e => keys[e.key] = true);
-window.addEventListener("keyup", e => keys[e.key] = false);
+window.addEventListener("keydown", e => keys[e.key]=true);
+window.addEventListener("keyup", e => keys[e.key]=false);
 
-/* ===== INTERAKSI NPC ===== */
-function checkNPCInteraction() {
+/* ===== HUD ===== */
+const hud = document.getElementById("hud");
+function drawHUD(){
+  hud.innerText = `Lingkungan: ${env}  Dana: ${money}  Kebahagiaan: ${happy}`;
+}
+
+/* ===== CHECK NPC ===== */
+function checkNPC(){
   activeDialog = null;
-  npcs.forEach(npc => {
-    const dx = Math.abs(player.x - npc.x);
-    const dy = Math.abs(player.y - npc.y);
-    if(dx <= 1 && dy <= 1){
+  npcs.forEach(npc =>{
+    if(Math.abs(player.x - npc.x)<=1 && Math.abs(player.y - npc.y)<=1){
       activeDialog = npc;
     }
   });
@@ -131,82 +142,76 @@ const dialogBox = document.getElementById("dialog");
 const dialogText = document.getElementById("dialogText");
 const choicesBox = document.getElementById("choices");
 
-function showChoices() {
-  if(step >= events.length){
-    choicesBox.style.display = "none";
+function showChoices(){
+  if(step>=events.length){
+    choicesBox.style.display="none";
+    dialogBox.style.display="none";
     alert(`Game selesai!\nLingkungan: ${env}\nDana: ${money}\nKebahagiaan: ${happy}`);
     return;
   }
-  dialogBox.style.display = "block";
+  dialogBox.style.display="block";
   dialogText.innerText = events[step].q;
-  choicesBox.style.display = "block";
-  document.getElementById("choice1").innerText = events[step].a1;
-  document.getElementById("choice2").innerText = events[step].a2;
-  document.getElementById("choice3").innerText = events[step].a3;
+  choicesBox.style.display="block";
+  document.getElementById("choice1").innerText=events[step].a1;
+  document.getElementById("choice2").innerText=events[step].a2;
+  document.getElementById("choice3").innerText=events[step].a3;
 }
 
 function choose(opt){
   let effect;
-  if(opt===1) effect = events[step].e1;
-  if(opt===2) effect = events[step].e2;
-  if(opt===3) effect = events[step].e3;
-
-  env += effect[0];
-  money += effect[1];
-  happy += effect[2];
+  if(opt===1) effect=events[step].e1;
+  if(opt===2) effect=events[step].e2;
+  if(opt===3) effect=events[step].e3;
+  env+=effect[0]; money+=effect[1]; happy+=effect[2];
   step++;
   showChoices();
 }
 
-document.getElementById("choice1").onclick = () => choose(1);
-document.getElementById("choice2").onclick = () => choose(2);
-document.getElementById("choice3").onclick = () => choose(3);
+document.getElementById("choice1").onclick=()=>choose(1);
+document.getElementById("choice2").onclick=()=>choose(2);
+document.getElementById("choice3").onclick=()=>choose(3);
 
-/* ===== TOMBOL E UNTUK TUTUP DIALOG ===== */
 window.addEventListener("keydown", e => {
-  if(e.key === "e" && dialogBox.style.display === "block"){
-    dialogBox.style.display = "none";
-    choicesBox.style.display = "none";
+  if(e.key==="e" && dialogBox.style.display==="block"){
+    dialogBox.style.display="none";
+    choicesBox.style.display="none";
   }
 });
 
 /* ===== UPDATE ===== */
-function update() {
-  if(keys["ArrowUp"] || keys["w"]) player.y--;
-  if(keys["ArrowDown"] || keys["s"]) player.y++;
-  if(keys["ArrowLeft"] || keys["a"]) player.x--;
-  if(keys["ArrowRight"] || keys["d"]) player.x++;
-
-  player.x = Math.max(0, Math.min(cols-1, player.x));
-  player.y = Math.max(0, Math.min(rows-1, player.y));
-
-  checkNPCInteraction();
-  if(activeDialog && step < events.length){
-    showChoices();
-  }
+function update(){
+  if(keys["ArrowUp"]||keys["w"]) player.y--;
+  if(keys["ArrowDown"]||keys["s"]) player.y++;
+  if(keys["ArrowLeft"]||keys["a"]) player.x--;
+  if(keys["ArrowRight"]||keys["d"]) player.x++;
+  player.x=Math.max(0,Math.min(cols-1,player.x));
+  player.y=Math.max(0,Math.min(rows-1,player.y));
+  checkNPC();
+  if(activeDialog && step<events.length){ showChoices(); }
 }
 
 /* ===== DRAW MAP ===== */
-function drawMap() {
-  for(let y=0; y<rows; y++){
-    for(let x=0; x<cols; x++){
-      ctx.fillStyle = "#4caf50";
-      ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
+function drawMap(){
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      if(map[y][x]===0) ctx.fillStyle="#4caf50";
+      if(map[y][x]===1) ctx.fillStyle="#90a4ae";
+      if(map[y][x]===2) ctx.fillStyle="#ffcc80";
+      if(map[y][x]===3) ctx.fillStyle="#81c784";
+      ctx.fillRect(x*tileSize,y*tileSize,tileSize,tileSize);
     }
   }
 }
 
-/* ===== DRAW PLAYER ===== */
-function drawPlayer() {
-  ctx.fillStyle = player.color;
-  ctx.fillRect(player.x*tileSize+6, player.y*tileSize+6, 20, 20);
+/* ===== DRAW PLAYER & NPC SPRITE ===== */
+function drawPlayer(){
+  ctx.fillStyle=player.color;
+  ctx.fillRect(player.x*tileSize+6,player.y*tileSize+6,20,20);
 }
-
-/* ===== DRAW NPC ===== */
 function drawNPCs(){
-  npcs.forEach(npc => {
-    ctx.fillStyle = npc.color;
-    ctx.fillRect(npc.x*tileSize+6, npc.y*tileSize+6, 20, 20);
+  npcs.forEach(npc=>{
+    ctx.fillStyle=npc.color;
+    ctx.fillRect(npc.x*tileSize+6,npc.y*tileSize+6,20,20);
   });
 }
 
@@ -217,14 +222,15 @@ function gameLoop(){
   drawMap();
   drawNPCs();
   drawPlayer();
+  drawHUD();
   requestAnimationFrame(gameLoop);
 }
-
 gameLoop();
 </script>
-
 </body>
 </html>
+
+
 
 
 
