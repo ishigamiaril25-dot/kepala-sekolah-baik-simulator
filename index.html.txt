@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Kepala Sekolah Simulator</title>
+<style>
+body {
+  margin: 0;
+  background: #222;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+canvas {
+  image-rendering: pixelated;
+  border: 4px solid #4caf50;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game" width="640" height="480"></canvas>
+
+<script>
+/* ===== SETUP ===== */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const tileSize = 32;
+const cols = 20;
+const rows = 15;
+
+/* ===== MAP ===== */
+const map = Array.from({ length: rows }, () =>
+  Array.from({ length: cols }, () => 0)
+);
+
+/* ===== PLAYER (KEPALA SEKOLAH) ===== */
+const player = {
+  x: 5,
+  y: 5,
+  color: "#ffeb3b"
+};
+
+/* ===== NPC ===== */
+const npcs = [
+  { x: 8, y: 5, color: "#2196f3", text: "Guru" },
+  { x: 12, y: 7, color: "#e91e63", text: "Siswi" },
+  { x: 6, y: 10, color: "#9c27b0", text: "Siswa" }
+];
+
+/* ===== INPUT ===== */
+const keys = {};
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
+
+/* ===== UPDATE ===== */
+function update() {
+  if (keys["ArrowUp"] || keys["w"]) player.y--;
+  if (keys["ArrowDown"] || keys["s"]) player.y++;
+  if (keys["ArrowLeft"] || keys["a"]) player.x--;
+  if (keys["ArrowRight"] || keys["d"]) player.x++;
+
+  player.x = Math.max(0, Math.min(cols - 1, player.x));
+  player.y = Math.max(0, Math.min(rows - 1, player.y));
+}
+
+/* ===== DRAW MAP ===== */
+function drawMap() {
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      ctx.fillStyle = "#4caf50";
+      ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+    }
+  }
+}
+
+/* ===== DRAW PLAYER ===== */
+function drawPlayer() {
+  ctx.fillStyle = player.color;
+  ctx.fillRect(
+    player.x * tileSize + 6,
+    player.y * tileSize + 6,
+    20,
+    20
+  );
+}
+
+/* ===== DRAW NPC ===== */
+function drawNPCs() {
+  npcs.forEach(npc => {
+    ctx.fillStyle = npc.color;
+    ctx.fillRect(
+      npc.x * tileSize + 6,
+      npc.y * tileSize + 6,
+      20,
+      20
+    );
+  });
+}
+
+/* ===== GAME LOOP ===== */
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  update();
+  drawMap();
+  drawNPCs();
+  drawPlayer();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
+
