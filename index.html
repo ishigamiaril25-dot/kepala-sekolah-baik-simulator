@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <title>Kepala Sekolah Simulator</title>
 <style>
+#choices button {
+  margin: 5px;
+  padding: 8px 12px;
+  font-family: monospace;
+  cursor: pointer;
+}
+
 body {
   margin: 0;
   background: #222;
@@ -16,12 +23,34 @@ canvas {
   image-rendering: pixelated;
   border: 4px solid #4caf50;
 }
+
+  #dialog {
+  position: absolute;
+  bottom: 20px;
+  width: 600px;
+  background: rgba(0,0,0,0.85);
+  color: white;
+  padding: 12px;
+  font-family: monospace;
+  display: none;
+  border: 3px solid #4caf50;
+}
+  
 </style>
 </head>
 
 <body>
 
 <canvas id="game" width="640" height="480"></canvas>
+<div id="dialog">
+  <p id="dialogText"></p>
+  <small>Tekan E untuk menutup</small>
+</div>
+<div id="choices" style="display:none;">
+  <button id="choice1"></button>
+  <button id="choice2"></button>
+  <button id="choice3"></button>
+</div>
 
 <script>
 /* ===== SETUP ===== */
@@ -51,10 +80,70 @@ const npcs = [
   { x: 6, y: 10, color: "#9c27b0", text: "Siswa" }
 ];
 
+  let activeDialog = null;
+
+function checkNPCInteraction() {
+  activeDialog = null;
+  npcs.forEach(npc => {
+    const dx = Math.abs(player.x - npc.x);
+    const dy = Math.abs(player.y - npc.y);
+    if (dx <= 1 && dy <= 1) {
+      activeDialog = npc;
+    }
+  });
+}
+
+// ===== EVENT / PILIHAN =====
+const events = [
+  {
+    q: "Sekolah ingin mengurangi sampah plastik. Apa yang dilakukan?",
+    a1: "Larangan plastik total",
+    e1: [15, -10, -5],
+    a2: "Kurangi sebagian",
+    e2: [8, -5, 0],
+    a3: "Tidak peduli",
+    e3: [-15, 0, -5]
+  },
+  {
+    q: "Tagihan listrik meningkat. Apa solusi?",
+    a1: "Ganti semua lampu ke LED",
+    e1: [10, -15, 0],
+    a2: "Matikan lampu saat tidak dipakai",
+    e2: [5, 0, 0],
+    a3: "Biarkan saja",
+    e3: [-10, 0, -5]
+  },
+  {
+    q: "Kantin mengeluh soal sampah plastik. Pilihanmu?",
+    a1: "Kantin bebas plastik",
+    e1: [10, -5, 10],
+    a2: "Gunakan plastik ramah lingkungan",
+    e2: [5, -2, 5],
+    a3: "Tidak ada perubahan",
+    e3: [-5, 0, -5]
+  }
+];
+
+let step = 0;
+let env = 50, money = 50, happy = 50;
+
 /* ===== INPUT ===== */
 const keys = {};
 window.addEventListener("keydown", e => keys[e.key] = true);
 window.addEventListener("keyup", e => keys[e.key] = false);
+
+  window.addEventListener("keydown", e => {
+  if (e.key === "e" && activeDialog) {
+    const box = document.getElementById("dialog");
+    const text = document.getElementById("dialogText");
+    box.style.display = "block";
+    text.innerText = activeDialog.text;
+  }
+
+  if (e.key === "e" && document.getElementById("dialog").style.display === "block") {
+    document.getElementById("dialog").style.display = "none";
+  }
+});
 
 /* ===== UPDATE ===== */
 function update() {
@@ -105,6 +194,7 @@ function drawNPCs() {
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   update();
+  checkNPCInteraction();
   drawMap();
   drawNPCs();
   drawPlayer();
@@ -116,5 +206,6 @@ gameLoop();
 
 </body>
 </html>
+
 
 
